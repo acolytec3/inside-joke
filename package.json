@@ -24,8 +24,10 @@
     "libp2p-webrtc-star": "0.20.1",
     "libp2p-websockets": "0.15.0",
     "peer-id": "0.14.2",
+    "qrcode.react": "^1.0.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
+    "react-qr-scanner": "0.0.11",
     "react-scripts": "4.0.1",
     "typescript": "^4.0.3",
     "web-vitals": "^0.2.4"
@@ -34,7 +36,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "start-star-server": "npx star-signal --port=13579 --host=127.0.0.1"
   },
   "eslintConfig": {
     "extends": [
@@ -55,6 +58,7 @@
     ]
   },
   "devDependencies": {
-    "@types/datastore-level": "^1.1.1"
+    "@types/datastore-level": "^1.1.1",
+    "@types/qrcode.react": "^1.0.1"
   }
 }

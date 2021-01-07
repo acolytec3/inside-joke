@@ -8,7 +8,8 @@ import mplex from "libp2p-mplex";
 import PeerID from "peer-id";
 import WStar from "libp2p-webrtc-star";
 import crypto from "libp2p-crypto";
-
+import QRCode from 'qrcode.react';
+import QrReader from 'react-qr-scanner'
 import {
   Box,
   Button,
@@ -18,7 +19,7 @@ import {
   Skeleton,
   Text,
   useClipboard,
-  VStack,
+  VStack, Modal, ModalOverlay, ModalContent, ModalBody
 } from "@chakra-ui/react";
 import { RsaPublicKey } from "crypto";
 
@@ -33,9 +34,8 @@ const options = {
   },
   addresses: {
     listen: [
-      /*
       "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-      "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",*/
+      "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
       "/ip4/127.0.0.1/tcp/13579/wss/p2p-webrtc-star",
     ],
   },
@@ -54,6 +54,7 @@ export default function App() {
   const [peerId, setRemotePeerID] = React.useState<PeerID>();
   const [peerPubKey, setPubKey] = React.useState<RsaPublicKey>();
   const [messageList, updateList] = React.useState<string[]>([]);
+  const [open, setOpen] = React.useState(false);
   const { onCopy } = useClipboard(id);
 
   React.useEffect(() => {
@@ -137,12 +138,16 @@ export default function App() {
     <VStack align="center" w="100vw">
       <Heading>Inside Joke</Heading>
       <Button onClick={() => startUp()}>Start Node</Button>
+      <Button onClick={() => setOpen(true)}>Read QR Code</Button>
       <HStack>
         <Text>Node ID:</Text>
         <Skeleton isLoaded={!loading && id !== ""}>
-          <Text cursor="pointer" onClick={onCopy}>
+          <Text whiteSpace="nowrap" overflow="hidden" textOverflow="ellipsis" w="200px" cursor="pointer" onClick={onCopy}>
             {node && node.peerId.toJSON().pubKey}
           </Text>
+        </Skeleton>
+        <Skeleton isLoaded={!loading && id !== ""}>
+          <QRCode value={id ? id : ''} />
         </Skeleton>
       </HStack>
       <Input
@@ -160,6 +165,20 @@ export default function App() {
             })}
         </Box>
       )}
+      <Modal isOpen={open} onClose={() => setOpen(false)}>
+        <ModalOverlay>
+          <ModalContent>
+            <ModalBody>
+              <QrReader
+                delay={300}
+                onError={(err: any) => console.log(err)}
+                onScan={(res: any) => { setRemote(res); if (res) setOpen(false) }}
+                style={{ width: '100%' }}
+              />
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>
+      </Modal>
     </VStack>
   );
 }
