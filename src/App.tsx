@@ -44,8 +44,8 @@ const options = {
   },
   addresses: {
     listen: [
-      //  "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-      //  "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      //"/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      //"/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
       "/ip4/127.0.0.1/tcp/13579/wss/p2p-webrtc-star",
     ],
   },
@@ -60,7 +60,7 @@ export default function App() {
   const [id, setId] = React.useState("");
   const [msg, setMsg] = React.useState<string>();
   const [loading, setLoading] = React.useState<boolean>(false);
-  const [remotePeerKeyString, setRemote] = React.useState<string>();
+  const [remotePeerKeyString, setRemote] = React.useState<string>("");
   const [peerId, setRemotePeerID] = React.useState<PeerID>();
   const [peerPubKey, setPubKey] = React.useState<RsaPublicKey>();
   const [messageList, updateList] = React.useState<any[]>([]);
@@ -140,7 +140,7 @@ export default function App() {
             </Skeleton>
             <Skeleton isLoaded={!loading && id !== ""}>
               <Box align="center">
-                <QRCode value={id ? id : ""} />
+                <QRCode value={id ? id : ""} size={200} />
                 <Text
                   mt={2}
                   whiteSpace="nowrap"
