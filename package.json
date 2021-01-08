@@ -1,6 +1,7 @@
 {
   "name": "joker",
   "version": "0.1.0",
+  "homepage": "./",
   "private": true,
   "dependencies": {
     "@chakra-ui/react": "^1.1.1",
@@ -39,7 +40,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "start-star-server": "npx star-signal --port=13579 --host=127.0.0.1",
-    "deploy": "react-scripts build && gh-pages -d build"
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
