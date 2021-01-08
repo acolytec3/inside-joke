@@ -26,6 +26,7 @@ import {
   HStack,
   IconButton,
   Textarea,
+  useToast,
 } from "@chakra-ui/react";
 
 import { send, receive } from "./providers/encryptedChat";
@@ -68,6 +69,7 @@ export default function App() {
   const [chatOn, setChatOn] = React.useState(false);
   const [showTyping, setTyping] = React.useState(false)
   const [stillTyping, setStillTyping] = React.useState(false)
+  const toast = useToast();
   const { onCopy } = useClipboard(id);
 
   React.useEffect(() => {
@@ -76,12 +78,24 @@ export default function App() {
 
   const getKey = async () => {
     if (remotePeerKeyString) {
+      try {
       let peer = await PeerID.createFromPubKey(remotePeerKeyString);
       let key = crypto.keys.unmarshalPublicKey(peer.marshalPubKey());
       setRemotePeerID(peer);
       //@ts-ignore
       setPubKey(key as RsaPublicKey);
       setChatOn(true);
+      }
+      catch (err) {
+        console.log('Error!', err)
+        toast({
+          title: "Couldn't find friend!",
+          description: "Scan your friend's QR code and try again",
+          status:"error",
+          duration:3000,
+          isClosable: true
+        });
+      }
     }
   };
 
@@ -197,7 +211,7 @@ export default function App() {
                   identifier={remotePeerKeyString}
                   size={48}
                 />
-                <Skeleton><Text>Some very long message!!! Hello!</Text></Skeleton>
+                <Skeleton><Text>Some very long message that you'll never see!!! Hello!</Text></Skeleton>
               </HStack>}
           </Box>
           <HStack
