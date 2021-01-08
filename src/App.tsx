@@ -25,6 +25,7 @@ import {
   ModalBody,
   HStack,
   IconButton,
+  Textarea,
 } from "@chakra-ui/react";
 
 import { send, receive } from "./providers/encryptedChat";
@@ -32,6 +33,7 @@ import { send, receive } from "./providers/encryptedChat";
 import { RsaPublicKey } from "crypto";
 
 var node: Libp2p;
+
 
 const options = {
   modules: {
@@ -42,8 +44,8 @@ const options = {
   },
   addresses: {
     listen: [
-     //   "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-     //   "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      //  "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      //  "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
       "/ip4/127.0.0.1/tcp/13579/wss/p2p-webrtc-star",
     ],
   },
@@ -64,6 +66,8 @@ export default function App() {
   const [messageList, updateList] = React.useState<any[]>([]);
   const [open, setOpen] = React.useState(false);
   const [chatOn, setChatOn] = React.useState(false);
+  const [showTyping, setTyping] = React.useState(false)
+  const [stillTyping, setStillTyping] = React.useState(false)
   const { onCopy } = useClipboard(id);
 
   React.useEffect(() => {
@@ -91,7 +95,16 @@ export default function App() {
 
     await node.handle("/encryptedChat/1.0", async ({ stream }) => {
       let mes = await receive(stream, node);
-      updateList((messages) => [...messages, { from: "them", message: mes }]);
+      if (mes === "#1512BA") {
+        setTyping(true)
+      }
+      else if (mes === "#1512AB") {
+        setTyping(false)
+      }
+      else {
+        updateList((messages) => [...messages, { from: "them", message: mes }]);
+        setTyping(false)
+      }
     });
     await node.start();
     setId(node.peerId.toJSON().pubKey!);
@@ -103,8 +116,20 @@ export default function App() {
     send(msg!, node, peerId!, peerPubKey);
     updateList((messages) => [...messages, { from: "me", message: msg! }]);
     setMsg("");
+    setStillTyping(false)
   };
 
+  const typing = async (evt: React.ChangeEvent<HTMLInputElement>) => {
+    setMsg(evt.target.value);
+    if (evt.target.value !== '' && !stillTyping) {
+      send('#1512BA', node, peerId!, peerPubKey)
+      setStillTyping(true)
+    }
+    if (evt.target.value === '' && stillTyping) {
+      send('#1512AB', node, peerId!, peerPubKey)
+      setStillTyping(false)
+    }
+  }
   return (
     <VStack align="center" w="100vw">
       {!chatOn && (
@@ -130,17 +155,25 @@ export default function App() {
               </Box>
             </Skeleton>
           </Box>
-          <Input
-            maxWidth="300px"
-            value={remotePeerKeyString}
-            placeholder="Peer's Public Key"
-            type="password"
-            onChange={(evt) => setRemote(evt.target.value)}
-          />
-          <HStack>
-            <Button onClick={getKey}>Find a friend</Button>
-            <Button onClick={() => setOpen(true)}>Read QR Code</Button>
-          </HStack>
+          <Box d="flex" alignItems="baseline">
+            <Skeleton isLoaded={remotePeerKeyString !== ''}>
+              <HashedBotIdenticon identifier={remotePeerKeyString} />
+            </Skeleton>
+            <Box align="center">
+              <Textarea
+                height="200px"
+                width="200px"
+                value={remotePeerKeyString}
+                placeholder="Peer's Public Key"
+                type="password"
+                onChange={(evt) => setRemote(evt.target.value)}
+              />
+              <HStack>
+                <Button onClick={getKey}>Find a friend</Button>
+                <Button onClick={() => setOpen(true)}>Read QR Code</Button>
+              </HStack>
+            </Box>
+          </Box>
         </>
       )}
       {chatOn && (
@@ -149,7 +182,7 @@ export default function App() {
             {messageList.length > 0 &&
               messageList.map((msg) => {
                 return (
-                  <HStack>
+                  <HStack key={msg.message}>
                     <HashedBotIdenticon
                       identifier={msg.from === "me" ? id : remotePeerKeyString}
                       size={48}
@@ -158,6 +191,14 @@ export default function App() {
                   </HStack>
                 );
               })}
+            {showTyping &&
+              <HStack>
+                <HashedBotIdenticon
+                  identifier={remotePeerKeyString}
+                  size={48}
+                />
+                <Skeleton><Text>Some very long message!!! Hello!</Text></Skeleton>
+              </HStack>}
           </Box>
           <HStack
             justifyContent="center"
@@ -167,13 +208,14 @@ export default function App() {
             left="0px"
             w="100vw"
           >
+            <HashedBotIdenticon identifier={id} size={48} />
             <Input
               opacity="100%"
               bg="white"
               placeholder="Say something"
               maxWidth="300px"
               value={msg}
-              onChange={(evt) => setMsg(evt.target.value)}
+              onChange={(evt) => typing(evt)}
               onKeyPress={(evt) => evt.key === 'Enter' && sendMessage()}
             />
             <IconButton
