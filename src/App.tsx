@@ -33,8 +33,6 @@ import {
 
 import { send, receive } from "./providers/encryptedChat";
 
-import { RsaPublicKey } from "crypto";
-
 var node: Libp2p;
 
 const options = {
@@ -64,7 +62,7 @@ export default function App() {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [remotePeerKeyString, setRemote] = React.useState<string>("");
   const [peerId, setRemotePeerID] = React.useState<PeerID>();
-  const [peerPubKey, setPubKey] = React.useState<RsaPublicKey>();
+  const [peerPubKey, setPubKey] = React.useState<crypto.keys.supportedKeys.rsa.RsaPublicKey>();
   const [messageList, updateList] = React.useState<any[]>([]);
   const [open, setOpen] = React.useState(false);
   const [chatOn, setChatOn] = React.useState(false);
@@ -111,10 +109,10 @@ export default function App() {
     if (remotePeerKeyString) {
       setDialing(true);
       let peer: PeerID;
-      let key: crypto.PublicKey;
+      let key: crypto.keys.supportedKeys.rsa.RsaPublicKey;
       try {
         peer = await PeerID.createFromPubKey(remotePeerKeyString);
-        key = crypto.keys.unmarshalPublicKey(peer.marshalPubKey());
+        key = crypto.keys.supportedKeys.rsa.unmarshalRsaPublicKey(peer.marshalPubKey());
       } catch (err) {
         console.log("Error!", err);
         toast({
@@ -142,8 +140,7 @@ export default function App() {
       } while (Date.now() - time < 5000 && !connected);
       if (connected) {
         setRemotePeerID(peer);
-        //@ts-ignore
-        setPubKey(key as RsaPublicKey);
+        setPubKey(key);
         setChatOn(true);
       } else {
         toast({
@@ -186,7 +183,7 @@ export default function App() {
   };
 
   const sendMessage = async () => {
-    send(msg!, node, peerId!, peerPubKey);
+    send(msg!, node, peerId!, peerPubKey!);
     updateList((messages) => [...messages, { from: "me", message: msg! }]);
     setMsg("");
     setStillTyping(false);
@@ -195,11 +192,11 @@ export default function App() {
   const typing = async (evt: React.ChangeEvent<HTMLInputElement>) => {
     setMsg(evt.target.value);
     if (evt.target.value !== "" && !stillTyping) {
-      send("#1512BA", node, peerId!, peerPubKey);
+      send("#1512BA", node, peerId!, peerPubKey!);
       setStillTyping(true);
     }
     if (evt.target.value === "" && stillTyping) {
-      send("#1512AB", node, peerId!, peerPubKey);
+      send("#1512AB", node, peerId!, peerPubKey!);
       setStillTyping(false);
     }
   };

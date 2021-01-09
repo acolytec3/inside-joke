@@ -4,7 +4,7 @@ import libp2p from 'libp2p'
 import PeerId from 'peer-id';
 
 export const receive = async (stream: any, node: libp2p): Promise<string> => {
-    let pk = await crypto.keys.unmarshalPrivateKey(
+    let pk = await crypto.keys.supportedKeys.rsa.unmarshalRsaPrivateKey(
       node.peerId.marshalPrivKey()
     );
     let decryptedMsg = '';
@@ -15,17 +15,14 @@ export const receive = async (stream: any, node: libp2p): Promise<string> => {
       }
       let decryptedMsgArray = new Uint8Array(message.match(/.{1,2}/g)!.map((byte: string) => parseInt(byte, 16))
       );
-      //@ts-ignore
       decryptedMsg = new TextDecoder().decode(pk.decrypt(decryptedMsgArray));
     });
     return decryptedMsg;
   };
 
-export const send = async (msg: string, node: libp2p, peerId: PeerId, peerPubKey: any) => {
-
+export const send = async (msg: string, node: libp2p, peerId: PeerId, peerPubKey: crypto.keys.supportedKeys.rsa.RsaPublicKey) => {
     if (peerId) {
       let found = await node.peerStore.get(peerId);
-      //@ts-ignore
       let encryptedMessage = peerPubKey.encrypt(new TextEncoder().encode(msg));
       let hexEncMsg = encryptedMessage.reduce(
         (str: string, byte: number) => str + byte.toString(16).padStart(2, "0"),
