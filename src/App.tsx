@@ -27,6 +27,8 @@ import {
   IconButton,
   Textarea,
   useToast,
+  Spinner,
+  Center,
 } from "@chakra-ui/react";
 
 import { send, receive } from "./providers/encryptedChat";
@@ -34,7 +36,6 @@ import { send, receive } from "./providers/encryptedChat";
 import { RsaPublicKey } from "crypto";
 
 var node: Libp2p;
-
 
 const options = {
   modules: {
@@ -45,8 +46,8 @@ const options = {
   },
   addresses: {
     listen: [
-      //"/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-      //"/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
       "/ip4/127.0.0.1/tcp/13579/wss/p2p-webrtc-star",
     ],
   },
@@ -67,8 +68,9 @@ export default function App() {
   const [messageList, updateList] = React.useState<any[]>([]);
   const [open, setOpen] = React.useState(false);
   const [chatOn, setChatOn] = React.useState(false);
-  const [showTyping, setTyping] = React.useState(false)
-  const [stillTyping, setStillTyping] = React.useState(false)
+  const [showTyping, setTyping] = React.useState(false);
+  const [stillTyping, setStillTyping] = React.useState(false);
+  const [dialing, setDialing] = React.useState(false);
   const toast = useToast();
   const { onCopy } = useClipboard(id);
 
@@ -76,26 +78,85 @@ export default function App() {
     startUp();
   }, []);
 
-  const getKey = async () => {
-    if (remotePeerKeyString) {
+  React.useEffect(() => {
+    const checkPulse = async () => {
       try {
-      let peer = await PeerID.createFromPubKey(remotePeerKeyString);
-      let key = crypto.keys.unmarshalPublicKey(peer.marshalPubKey());
-      setRemotePeerID(peer);
-      //@ts-ignore
-      setPubKey(key as RsaPublicKey);
-      setChatOn(true);
+        console.log('is anybody out there?', await node.ping(peerId!))
+        setTimeout(() => checkPulse(), 5000)
       }
       catch (err) {
         console.log('Error!', err)
         toast({
+          title: "Connection lost!",
+          description: "Your friend seems to have disconnected.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        setRemote('');
+        setChatOn(false);
+        setPubKey(undefined)
+        setRemotePeerID(undefined)
+        setMsg('')
+        updateList([])
+      }
+    }
+    if (chatOn) {
+      setTimeout(() => checkPulse(), 5000);
+    }
+  }, [chatOn])
+
+  const getKey = async () => {
+    if (remotePeerKeyString) {
+      setDialing(true);
+      let peer: PeerID;
+      let key: crypto.PublicKey;
+      try {
+        peer = await PeerID.createFromPubKey(remotePeerKeyString);
+        key = crypto.keys.unmarshalPublicKey(peer.marshalPubKey());
+      } catch (err) {
+        console.log("Error!", err);
+        toast({
+          title: "Invalid address",
+          description: "Scan your friend's QR code and try again",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
+        });
+        setRemote("");
+        setDialing(false);
+        return;
+      }
+      let time = Date.now();
+      let connected = false;
+      do {
+        try {
+          console.log("ping ", await node.ping(peer));
+          connected = true;
+        } catch (err) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          console.log("Error!", err);
+        }
+      } while (Date.now() - time < 5000 && !connected);
+      if (connected) {
+        setRemotePeerID(peer);
+        //@ts-ignore
+        setPubKey(key as RsaPublicKey);
+        setChatOn(true);
+      } else {
+        toast({
           title: "Couldn't find friend!",
           description: "Scan your friend's QR code and try again",
-          status:"error",
-          duration:3000,
-          isClosable: true
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top",
         });
       }
+      setRemote("");
+      setDialing(false);
     }
   };
 
@@ -110,14 +171,12 @@ export default function App() {
     await node.handle("/encryptedChat/1.0", async ({ stream }) => {
       let mes = await receive(stream, node);
       if (mes === "#1512BA") {
-        setTyping(true)
-      }
-      else if (mes === "#1512AB") {
-        setTyping(false)
-      }
-      else {
+        setTyping(true);
+      } else if (mes === "#1512AB") {
+        setTyping(false);
+      } else {
         updateList((messages) => [...messages, { from: "them", message: mes }]);
-        setTyping(false)
+        setTyping(false);
       }
     });
     await node.start();
@@ -130,20 +189,21 @@ export default function App() {
     send(msg!, node, peerId!, peerPubKey);
     updateList((messages) => [...messages, { from: "me", message: msg! }]);
     setMsg("");
-    setStillTyping(false)
+    setStillTyping(false);
   };
 
   const typing = async (evt: React.ChangeEvent<HTMLInputElement>) => {
     setMsg(evt.target.value);
-    if (evt.target.value !== '' && !stillTyping) {
-      send('#1512BA', node, peerId!, peerPubKey)
-      setStillTyping(true)
+    if (evt.target.value !== "" && !stillTyping) {
+      send("#1512BA", node, peerId!, peerPubKey);
+      setStillTyping(true);
     }
-    if (evt.target.value === '' && stillTyping) {
-      send('#1512AB', node, peerId!, peerPubKey)
-      setStillTyping(false)
+    if (evt.target.value === "" && stillTyping) {
+      send("#1512AB", node, peerId!, peerPubKey);
+      setStillTyping(false);
     }
-  }
+  };
+
   return (
     <VStack align="center" w="100vw">
       {!chatOn && (
@@ -170,7 +230,7 @@ export default function App() {
             </Skeleton>
           </Box>
           <Box d="flex" alignItems="baseline">
-            <Skeleton isLoaded={remotePeerKeyString !== ''}>
+            <Skeleton isLoaded={remotePeerKeyString !== ""}>
               <HashedBotIdenticon identifier={remotePeerKeyString} />
             </Skeleton>
             <Box align="center">
@@ -205,14 +265,19 @@ export default function App() {
                   </HStack>
                 );
               })}
-            {showTyping &&
+            {showTyping && (
               <HStack>
                 <HashedBotIdenticon
                   identifier={remotePeerKeyString}
                   size={48}
                 />
-                <Skeleton><Text>Some very long message that you'll never see!!! Hello!</Text></Skeleton>
-              </HStack>}
+                <Skeleton>
+                  <Text>
+                    Some very long message that you'll never see!!! Hello!
+                  </Text>
+                </Skeleton>
+              </HStack>
+            )}
           </Box>
           <HStack
             justifyContent="center"
@@ -230,7 +295,7 @@ export default function App() {
               maxWidth="300px"
               value={msg}
               onChange={(evt) => typing(evt)}
-              onKeyPress={(evt) => evt.key === 'Enter' && sendMessage()}
+              onKeyPress={(evt) => evt.key === "Enter" && sendMessage()}
             />
             <IconButton
               aria-label="send message"
@@ -254,6 +319,18 @@ export default function App() {
                 }}
                 style={{ width: "100%" }}
               />
+            </ModalBody>
+          </ModalContent>
+        </ModalOverlay>
+      </Modal>
+      <Modal isCentered closeOnEsc={false} isOpen={dialing} onClose={() => { }}>
+        <ModalOverlay>
+          <ModalContent>
+            <ModalBody>
+              <Center h="50px">
+                <Spinner mr="10px"/>
+                <Text>Phoning a friend</Text>
+              </Center>
             </ModalBody>
           </ModalContent>
         </ModalOverlay>
