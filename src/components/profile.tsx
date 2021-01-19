@@ -12,13 +12,15 @@ const Profile = () => {
 
   React.useEffect(() => {
     let mounted = true;
-    console.log(state.libp2p)
+    console.log(state.libp2p);
     if (state.libp2p?.peerId && mounted) {
       setId(state.libp2p.peerId.toJSON().pubKey!);
-      setLoading(false)
+      setLoading(false);
     }
-    return () => { mounted = false};
-  },[state.libp2p]);
+    return () => {
+      mounted = false;
+    };
+  }, [state.libp2p]);
 
   return (
     <Box d="flex" alignItems="baseline">
