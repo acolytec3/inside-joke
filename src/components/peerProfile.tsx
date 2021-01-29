@@ -36,10 +36,12 @@ const PeerProfile: React.FC<PeerProps> = ({ chatOff }) => {
     if (remote) {
       setDialing(true);
       let peer: PeerId;
-      let key: crypto.PublicKey;
+      let key: crypto.PrivateKey;
       try {
-        peer = await PeerId.createFromPubKey(remote);
-        key = crypto.keys.unmarshalPublicKey(peer.marshalPubKey());
+        peer = await PeerId.createFromPrivKey(remote);
+        console.log(peer)
+        key = await crypto.keys.unmarshalPrivateKey(peer.marshalPrivKey());
+        console.log(key)
       } catch (err) {
         console.log("Error!", err);
         toast({

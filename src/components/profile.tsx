@@ -14,7 +14,7 @@ const Profile = () => {
     let mounted = true;
     console.log(state.libp2p);
     if (state.libp2p?.peerId && mounted) {
-      setId(state.libp2p.peerId.toJSON().pubKey!);
+      setId(state.libp2p.peerId.toJSON().privKey!);
       setLoading(false);
     }
     return () => {
@@ -28,8 +28,8 @@ const Profile = () => {
         <HashedBotIdenticon identifier={id} />
       </Skeleton>
       <Skeleton isLoaded={!loading && id !== ""}>
-        <Box align="center">
-          <QRCode value={id ? id : ""} size={200} />
+        <Box align="center" marginY={5}>
+          <QRCode value={id ? id : ""} size={400} />
           <Text
             mt={2}
             whiteSpace="nowrap"
